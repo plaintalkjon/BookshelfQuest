@@ -1,8 +1,12 @@
+import { useNavigate } from 'react-router-dom';
 import { Button, Text } from '@/components/atoms';
 import { NavbarProps } from './Navbar.types';
+
 import './Navbar.css';
 
 export const Navbar = ({ className = '' }: NavbarProps) => {
+  const navigate = useNavigate();
+  
   const navItems = [
     { label: 'Home', path: '/' },
     { label: 'Library', path: '/library' },
@@ -22,6 +26,7 @@ export const Navbar = ({ className = '' }: NavbarProps) => {
             variant="body"
             color="primary"
             className="nav-link"
+            onClick={() => navigate(item.path)}
           >
             {item.label}
           </Text>
@@ -29,7 +34,13 @@ export const Navbar = ({ className = '' }: NavbarProps) => {
       </div>
 
       <div className="navbar-actions">
-        <Button variant="secondary" size="small">Sign In</Button>
+        <Button 
+          variant="secondary" 
+          size="small"
+          onClick={() => navigate('/login')}
+        >
+          Sign In
+        </Button>
       </div>
     </nav>
   );

@@ -12,4 +12,5 @@ export interface TextProps {
   className?: string;
   color?: 'primary' | 'secondary' | 'inverse';
   as?: keyof JSX.IntrinsicElements;
+  onClick?: () => void;
 } 

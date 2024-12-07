@@ -1,6 +1,9 @@
 // Export all atomic components
-export { Button } from './Button/Button';
-export type { ButtonProps } from './Button/Button.types';
+export { Button } from './Button';
+export type { ButtonProps } from './Button';
 
-export { Text } from './Text/Text';
-export type { TextProps, TextVariant } from './Text/Text.types';
+export { Text } from './Text';
+export type { TextProps, TextVariant } from './Text';
+
+export { Input } from './Input';
+export type { InputProps } from './Input';
