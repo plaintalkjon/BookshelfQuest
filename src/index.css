@@ -3,13 +3,13 @@
   --color-rich-black: #071013;
   --color-cosmic-latte: #faf3e0;
   --color-lion: #b08d57;
-  --color-lavender: #CE4257;
+  --color-majorelle-blue: #5E4AE3;
   --color-caput-mortuum: #63372c;
   --color-paper: #ffffff;     
   /* Design System Colors */
   --color-primary: var(--color-rich-black);    /* Main brand color */
   --color-secondary: var(--color-lion);          /* Supporting color */
-  --color-tertiary: var(--color-lavender);       /* Additional accent */
+  --color-tertiary: var(--color-majorelle-blue);       /* Additional accent */
   
   /* UI Colors */
   --color-background: var(--color-cosmic-latte);  /* Main background */
@@ -21,7 +21,7 @@
 
   /* Interactive States */
   --color-hover: var(--color-lion);
-  --color-active: var(--color-lavender);
+  --color-active: var(--color-majorelle-blue);
   --color-disabled: rgba(38, 35, 34, 0.5);       /* Raisin Black with opacity */
 
   /* Font family */
