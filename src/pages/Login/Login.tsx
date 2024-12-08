@@ -5,12 +5,14 @@ import { useAuth } from '@/hooks/useAuth';
 import './Login.css';
 
 export const Login = () => {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const { login, signup } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const { login, signup, forgotPassword } = useAuth();
 
-  const fields = mode === 'login' ? [
+  const fields = mode === 'forgot' ? [
+    { name: 'email', label: 'Email', type: 'email', required: true }
+  ] : mode === 'login' ? [
     { name: 'email', label: 'Email', type: 'email', required: true },
-    { name: 'password', label: 'Password', type: 'password', required: true }
+    { name: 'password', label: 'Password', type: 'password', required: true },
   ] : [
     { name: 'email', label: 'Email', type: 'email', required: true },
     { name: 'username', label: 'Username', type: 'text', required: true },
@@ -19,10 +21,12 @@ export const Login = () => {
   ];
 
   const handleSubmit = async (data: Record<string, string>) => {
-    if (mode === 'login') {
+    if (mode === 'forgot') {
+      forgotPassword.mutate(data.email);
+    } else if (mode === 'login') {
       login.mutate({
         email: data.email,
-        password: data.password
+        password: data.password,
       });
     } else {
       signup.mutate({
@@ -34,37 +38,71 @@ export const Login = () => {
     }
   };
 
-  const error = login.error || signup.error;
-  const loading = login.isPending || signup.isPending;
-
   return (
     <div className="login-container">
       <div className="login-card">
         <Text variant="h1" className="login-title">
-          {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+          {mode === 'forgot' 
+            ? 'Reset Password'
+            : mode === 'login' 
+              ? 'Welcome Back' 
+              : 'Create Account'}
         </Text>
         
         <Form
           fields={fields}
           onSubmit={handleSubmit}
-          submitText={mode === 'login' ? 'Sign In' : 'Sign Up'}
-          loading={loading}
-          error={error?.message}
+          submitText={mode === 'forgot' 
+            ? 'Send Reset Link'
+            : mode === 'login' 
+              ? 'Sign In' 
+              : 'Sign Up'}
+          loading={login.isPending || signup.isPending || forgotPassword.isPending}
+          error={login.error?.message || signup.error?.message || forgotPassword.error?.message}
           className="login-form"
         />
 
         <div className="login-footer">
-          <Text variant="body-small">
-            {mode === 'login' 
-              ? "Don't have an account?" 
-              : "Already have an account?"}
-          </Text>
-          <Button
-            variant="tertiary"
-            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-          >
-            {mode === 'login' ? 'Sign Up' : 'Sign In'}
-          </Button>
+          {mode === 'login' && (
+            <>
+              <Button
+                variant="tertiary"
+                onClick={() => setMode('forgot')}
+              >
+                Forgot Password?
+              </Button>
+              <Text variant="body-small">
+                Don't have an account?
+              </Text>
+              <Button
+                variant="tertiary"
+                onClick={() => setMode('signup')}
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
+          {mode === 'forgot' && (
+            <Button
+              variant="tertiary"
+              onClick={() => setMode('login')}
+            >
+              Back to Login
+            </Button>
+          )}
+          {mode === 'signup' && (
+            <>
+              <Text variant="body-small">
+                Already have an account?
+              </Text>
+              <Button
+                variant="tertiary"
+                onClick={() => setMode('login')}
+              >
+                Sign In
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
