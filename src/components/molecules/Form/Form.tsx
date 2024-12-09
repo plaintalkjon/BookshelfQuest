@@ -1,55 +1,52 @@
 import { useState } from 'react';
-import { Button, Input, Text } from '@/components/atoms';
+import { Input, Button } from '@/components/atoms';
 import { FormProps } from './Form.types';
 import './Form.css';
 
 export const Form = ({ 
   fields, 
   onSubmit, 
-  submitText,
+  submitText = 'Submit',
   loading = false,
-  error = null,
+  error,
   className = ''
 }: FormProps) => {
   const [formData, setFormData] = useState<Record<string, string>>(
-    fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
+    // Initialize with empty strings for all fields
+    fields.reduce((acc, field) => ({
+      ...acc,
+      [field.name]: ''
+    }), {})
   );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Call the field's onChange if provided
+    fields.find(f => f.name === name)?.onChange?.(e);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
-  const handleChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   return (
     <form onSubmit={handleSubmit} className={`form ${className}`}>
-      {fields.map((field) => (
+      {fields.map(({ name, ...field }) => (
         <Input
-          key={field.name}
-          label={field.label}
-          type={field.type}
-          value={formData[field.name]}
-          onChange={(e) => handleChange(field.name, e.target.value)}
-          required={field.required}
-          placeholder={field.placeholder}
-          fullWidth
+          key={name}
+          name={name}
+          value={formData[name]}
+          onChange={handleChange}
+          {...field}
         />
       ))}
-
-      {error && (
-        <Text variant="body-small" className="form-error">
-          {error}
-        </Text>
-      )}
-
-      <Button
-        type="submit"
-        variant="primary"
-        fullWidth
+      {error && <div className="form-error">{error}</div>}
+      <Button 
+        type="submit" 
         isLoading={loading}
+        fullWidth
       >
         {submitText}
       </Button>

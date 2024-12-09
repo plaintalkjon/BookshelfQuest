@@ -1,75 +1,92 @@
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
-import { useEffect } from 'react';
 
 // Logging in, signing up, and logging out
 
 interface LoginCredentials {
   email: string;
   password: string;
-  rememberMe?: boolean;
 }
 
-interface SignupCredentials extends LoginCredentials {
-  username: string;
+interface SignupCredentials {
+  email: string;
+  password: string;
   confirmPassword: string;
+  username: string;
+  display_name: string;
 }
 
 export const useAuth = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
 
   const login = useMutation({
-    mutationFn: async ({ email, password }: LoginCredentials) => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    mutationFn: async (credentials: LoginCredentials) => {
+      const { data, error } = await supabase.auth.signInWithPassword(credentials);
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      // Redirect after successful login
-      navigate('/');
-      // Show success toast
-      toast.success('Welcome back!');
-      // Invalidate and refetch user data
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-      queryClient.invalidateQueries({ queryKey: ['books'] });
+      navigate('/dashboard');
     }
   });
 
   const signup = useMutation({
     mutationFn: async (credentials: SignupCredentials) => {
-      if (credentials.password !== credentials.confirmPassword) {
-        throw new Error('Passwords do not match');
+      // 1. Check if username exists
+      const { data: existingUsername } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .ilike('username', credentials.username)
+        .single();
+
+      if (existingUsername) {
+        throw new Error('Username already taken');
       }
-      
-      const { error } = await supabase.auth.signUp({
+
+      // 2. Check if email exists
+      const { data: existingEmail } = await supabase
+        .from('user_profiles')
+        .select('email')
+        .ilike('email', credentials.email)
+        .single();
+
+      if (existingEmail) {
+        throw new Error('Email already registered');
+      }
+
+      // 3. Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: credentials.email,
-        password: credentials.password,
-        options: {
-          data: {
-            display_name: credentials.username
-          }
-        }
+        password: credentials.password
       });
-      if (error) throw error;
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Signup failed');
+
+      // 4. Create profile
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: authData.user.id,
+          username: credentials.username,
+          display_name: credentials.display_name,
+        });
+
+      if (profileError) throw profileError;
+
+      return authData;
     },
     onSuccess: () => {
-      navigate('/');
-      toast.success('Welcome to BookshelfQuest!');
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      toast.success('Account created! Please check your email to verify your account.');
+      navigate('/login');
     }
   });
 
   const forgotPassword = useMutation({
     mutationFn: async (email: string) => {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -78,63 +95,5 @@ export const useAuth = () => {
     }
   });
 
-  const resetPassword = useMutation({
-    mutationFn: async ({ password, confirmPassword }: { 
-      password: string; 
-      confirmPassword: string 
-    }) => {
-      if (password !== confirmPassword) {
-        throw new Error('Passwords do not match');
-      }
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Password updated successfully');
-      navigate('/login');
-    }
-  });
-
-  const logout = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      navigate('/');
-      queryClient.setQueryData(['user'], null);
-      toast.success('Logged out successfully');
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-    }
-  });
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed', session?.expires_at);
-        // Optionally refresh user data
-        queryClient.invalidateQueries({ queryKey: ['user'] });
-      } else if (event === 'SIGNED_OUT') {
-        // Clear any cached data
-        queryClient.clear();
-      } else if (event === 'SIGNED_IN') {
-        // Refresh queries that depend on auth
-        queryClient.invalidateQueries({ queryKey: ['user'] });
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
-
-  return {
-    login,
-    signup,
-    forgotPassword,
-    resetPassword,
-    logout
-  };
+  return { login, signup, forgotPassword };
 }; 

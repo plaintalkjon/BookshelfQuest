@@ -3,18 +3,19 @@ import { supabase } from "@/lib/supabase";
 
 export const useUser = () => {
   return useQuery({
-    queryKey: ["user"],
+    queryKey: ['user'],
     queryFn: async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+      const { data: { session }, error } = await supabase.auth.getSession();
       if (error) throw error;
-      return user;
-    },
-    // Keep the data fresh
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    // Retry on error
-    retry: 1,
+      if (!session) return null;
+      
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      return profile;
+    }
   });
 };

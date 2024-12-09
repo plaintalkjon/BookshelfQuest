@@ -1,39 +1,93 @@
-import { useState } from 'react';
-import { Button, Text } from '@/components/atoms';
-import { Form } from '@/components/molecules';
-import { useAuth } from '@/hooks/useAuth';
-import './Login.css';
+import { useState } from "react";
+import { Button, Text } from "@/components/atoms";
+import { Form } from "@/components/molecules";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import "./Login.css";
 
 export const Login = () => {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const { login, signup, forgotPassword } = useAuth();
+  const navigate = useNavigate();
 
-  const fields = mode === 'forgot' ? [
-    { name: 'email', label: 'Email', type: 'email', required: true }
-  ] : mode === 'login' ? [
-    { name: 'email', label: 'Email', type: 'email', required: true },
-    { name: 'password', label: 'Password', type: 'password', required: true },
-  ] : [
-    { name: 'email', label: 'Email', type: 'email', required: true },
-    { name: 'username', label: 'Username', type: 'text', required: true },
-    { name: 'password', label: 'Password', type: 'password', required: true },
-    { name: 'confirmPassword', label: 'Confirm Password', type: 'password', required: true }
-  ];
+  const getFields = () => {
+    switch (mode) {
+      case "login":
+        return [
+          { name: "email", label: "Email", type: "email", required: true },
+          {
+            name: "password",
+            label: "Password",
+            type: "password",
+            required: true,
+          },
+        ];
+      case "signup":
+        return [
+          { name: "email", label: "Email", type: "email", required: true },
+          {
+            name: "username",
+            label: "Username",
+            type: "text",
+            required: true,
+            pattern: "^[a-zA-Z0-9]{3,20}$",
+            title:
+              "Username must be 3-20 characters and can only contain letters and numbers",
+          },
+          {
+            name: "display_name",
+            label: "Display Name",
+            type: "text",
+            required: true,
+          },
+          {
+            name: "password",
+            label: "Password",
+            type: "password",
+            required: true,
+          },
+          {
+            name: "confirmPassword",
+            label: "Confirm Password",
+            type: "password",
+            required: true,
+          },
+        ];
+      case "forgot":
+        return [
+          { name: "email", label: "Email", type: "email", required: true },
+        ];
+      default:
+        return [];
+    }
+  };
 
   const handleSubmit = async (data: Record<string, string>) => {
-    if (mode === 'forgot') {
+    if (mode === "forgot") {
       forgotPassword.mutate(data.email);
-    } else if (mode === 'login') {
+    } else if (mode === "signup") {
+      try {
+        // Create user account
+        await signup.mutateAsync({
+          email: data.email,
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+          username: data.username,
+          display_name: data.display_name,
+        });
+        navigate("/");
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(error.message);
+        } else {
+          toast.error('An unexpected error occurred');
+        }
+      }
+    } else {
       login.mutate({
         email: data.email,
         password: data.password,
-      });
-    } else {
-      signup.mutate({
-        email: data.email,
-        username: data.username,
-        password: data.password,
-        confirmPassword: data.confirmPassword
       });
     }
   };
@@ -42,66 +96,50 @@ export const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <Text variant="h1" className="login-title">
-          {mode === 'forgot' 
-            ? 'Reset Password'
-            : mode === 'login' 
-              ? 'Welcome Back' 
-              : 'Create Account'}
+          {mode === "forgot"
+            ? "Reset Password"
+            : mode === "login"
+            ? "Welcome Back"
+            : "Create Account"}
         </Text>
-        
+
         <Form
-          fields={fields}
+          fields={getFields()}
           onSubmit={handleSubmit}
-          submitText={mode === 'forgot' 
-            ? 'Send Reset Link'
-            : mode === 'login' 
-              ? 'Sign In' 
-              : 'Sign Up'}
-          loading={login.isPending || signup.isPending || forgotPassword.isPending}
-          error={login.error?.message || signup.error?.message || forgotPassword.error?.message}
+          submitText={
+            mode === "forgot"
+              ? "Send Reset Link"
+              : mode === "login"
+              ? "Sign In"
+              : "Sign Up"
+          }
+          loading={
+            login.isPending || signup.isPending || forgotPassword.isPending
+          }
+          error={
+            login.error?.message ||
+            signup.error?.message ||
+            forgotPassword.error?.message
+          }
           className="login-form"
         />
 
         <div className="login-footer">
-          {mode === 'login' && (
+          {mode === "login" && (
             <>
-              <Button
-                variant="tertiary"
-                onClick={() => setMode('forgot')}
-              >
+              <Button variant="tertiary" onClick={() => setMode("forgot")}>
                 Forgot Password?
               </Button>
-              <Text variant="body-small">
-                Don't have an account?
-              </Text>
-              <Button
-                variant="tertiary"
-                onClick={() => setMode('signup')}
-              >
+              <Text variant="body-small">Don't have an account?</Text>
+              <Button variant="tertiary" onClick={() => setMode("signup")}>
                 Sign Up
               </Button>
             </>
           )}
-          {mode === 'forgot' && (
-            <Button
-              variant="tertiary"
-              onClick={() => setMode('login')}
-            >
+          {(mode === "forgot" || mode === "signup") && (
+            <Button variant="tertiary" onClick={() => setMode("login")}>
               Back to Login
             </Button>
-          )}
-          {mode === 'signup' && (
-            <>
-              <Text variant="body-small">
-                Already have an account?
-              </Text>
-              <Button
-                variant="tertiary"
-                onClick={() => setMode('login')}
-              >
-                Sign In
-              </Button>
-            </>
           )}
         </div>
       </div>
@@ -109,4 +147,4 @@ export const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;

@@ -35,6 +35,7 @@ export const Navbar = () => {
             {item.label}
           </Text>
         ))}
+        <Text variant="body" color="primary" className="nav-link" onClick={() => navigate("/profile")}>Profile</Text>
       </div>
 
       <div className="navbar-actions">
